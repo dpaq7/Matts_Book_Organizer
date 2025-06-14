@@ -27,7 +27,7 @@
   
   async function loadBooks() {
     try {
-      const booksData = await api.getBooks({ limit: 500 });
+      const booksData = await api.getBooks({});
       books.set(booksData);
       calculateStatistics(booksData);
     } catch (err) {

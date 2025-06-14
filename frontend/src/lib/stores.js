@@ -16,7 +16,7 @@ export const filters = writable({
   shelf: '',
   rating: undefined,
   skip: 0,
-  limit: 50
+  limit: undefined
 });
 
 // Statistics store

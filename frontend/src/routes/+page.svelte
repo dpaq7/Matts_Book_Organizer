@@ -15,7 +15,7 @@
     try {
       setLoading(true);
       clearError();
-      const booksData = await api.getBooks({ limit: 100 });
+      const booksData = await api.getBooks({});
       books.set(booksData);
     } catch (err) {
       error.set(err instanceof Error ? err.message : 'Failed to load books');
@@ -138,13 +138,9 @@
       {/each}
     </div>
     
-    <!-- Load more button (for pagination) -->
-    {#if $filteredBooks.length >= 50}
-      <div class="text-center pt-8">
-        <button class="btn btn-secondary">
-          Load more books
-        </button>
-      </div>
-    {/if}
+    <!-- Book count display -->
+    <div class="text-center pt-8 text-sm text-gray-500 dark:text-gray-400">
+      Showing all {$filteredBooks.length} books
+    </div>
   {/if}
 </div>

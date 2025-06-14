@@ -1,6 +1,30 @@
 # Matt's Book Organizer
 
-A fast, modern web application for organizing and managing your book collection. Built with FastAPI and SQLite, designed for self-hosting with Railway or Fly.io.
+A complete full-stack web application for organizing and managing your book collection. Built with FastAPI backend and SvelteKit frontend, designed for easy deployment and self-hosting.
+
+## 🏗️ Architecture
+
+This is a monorepo containing both backend and frontend:
+
+```
+Matt's-Book-Organizer/
+├── 📁 backend/           # FastAPI + SQLite backend
+│   ├── main.py          # API server
+│   ├── requirements.txt # Python dependencies
+│   └── ...
+├── 📁 frontend/         # SvelteKit frontend
+│   ├── src/             # Svelte components
+│   ├── package.json     # Node.js dependencies
+│   └── ...
+├── netlify.toml         # Frontend deployment config
+└── README.md           # This file
+```
+
+## 🚀 Live Demo
+
+- **Frontend**: Deploy to Netlify (free)
+- **Backend**: Deploy to Render (free with $5 credit)
+- **Database**: SQLite with persistent storage
 
 ## Features
 
@@ -22,12 +46,11 @@ The BEq system provides a clever way to understand book sizes relative to your r
 
 ## Quick Start
 
-### Local Development
+### Backend Setup
 
-1. **Clone and setup**:
+1. **Setup backend**:
    ```bash
-   git clone <repository>
-   cd matts-book-organizer
+   # From project root
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
@@ -35,39 +58,64 @@ The BEq system provides a clever way to understand book sizes relative to your r
 
 2. **Import your Goodreads data**:
    ```bash
-   python migrate_goodreads.py "your_goodreads_export.json"
+   python migrate_goodreads.py "Goodreads Library Export.json"
    ```
 
-3. **Run the application**:
+3. **Start backend server**:
    ```bash
    uvicorn main:app --reload
+   # API available at: http://localhost:8000
    ```
 
-4. **Access the API**: http://localhost:8000/docs
+### Frontend Setup
 
-### Deploy to Railway
-
-1. **Install Railway CLI**:
+1. **Setup frontend**:
    ```bash
-   npm install -g @railway/cli
+   cd frontend
+   npm install
    ```
 
-2. **Deploy**:
+2. **Start development server**:
    ```bash
-   railway login
-   railway init
-   railway up
+   npm run dev
+   # Frontend available at: http://localhost:5173
    ```
 
-### Deploy to Fly.io
-
-1. **Install Fly CLI**: https://fly.io/docs/hands-on/install-flyctl/
-
-2. **Deploy**:
+3. **Build for production**:
    ```bash
-   fly launch
-   fly deploy
+   npm run build
    ```
+
+## 🚀 Deployment
+
+### Backend (Render)
+
+1. **Connect GitHub repo** to [Render](https://render.com)
+2. **Auto-deploys** from `main` branch
+3. **Environment**: Python detected automatically
+4. **Database**: SQLite with persistent disk storage
+5. **Import**: Goodreads data imported on first deploy
+
+### Frontend (Netlify) 
+
+1. **Connect GitHub repo** to [Netlify](https://netlify.com)
+2. **Build settings**: Auto-detected from `netlify.toml`
+   - Base directory: `frontend/`
+   - Build command: `npm run build` 
+   - Publish directory: `frontend/build`
+3. **Environment variables**:
+   ```
+   VITE_API_URL=https://your-backend.onrender.com
+   ```
+4. **Custom domain**: Free HTTPS included
+
+### Complete Deployment (5 minutes)
+
+1. **Push this repo** to GitHub
+2. **Deploy backend** to Render (connects to GitHub)
+3. **Deploy frontend** to Netlify (connects to GitHub) 
+4. **Update API URL** in Netlify environment variables
+5. **Live app!** 🎉
 
 ## API Endpoints
 
@@ -98,10 +146,22 @@ The BEq system provides a clever way to understand book sizes relative to your r
 
 ## Technology Stack
 
-- **Backend**: FastAPI (Python)
-- **Database**: SQLite with SQLAlchemy ORM
-- **Deployment**: Railway/Fly.io
-- **Features**: Automatic API docs, type validation, async support
+### Backend
+- **FastAPI** (Python) - High-performance API framework
+- **SQLite** - Embedded database with SQLAlchemy ORM
+- **Pydantic** - Data validation and serialization
+- **Uvicorn** - ASGI server for production
+
+### Frontend  
+- **SvelteKit** - Modern meta-framework for fast web apps
+- **TypeScript** - Type-safe JavaScript development
+- **TailwindCSS** - Utility-first CSS framework
+- **Vite** - Lightning-fast build tool and dev server
+
+### Deployment
+- **Backend**: Render (free tier with persistent storage)
+- **Frontend**: Netlify (free tier with global CDN)
+- **Database**: SQLite file with automatic backups
 
 ## Configuration
 

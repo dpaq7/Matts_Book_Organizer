@@ -149,14 +149,14 @@
         <div class="space-y-6">
           <!-- Basic info -->
           <div>
-            <h2 class="text-lg font-semibold mb-4">Book Information</h2>
+            <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Book Information</h2>
             <div class="space-y-3">
               <div class="flex justify-between">
                 <span class="text-gray-600 dark:text-gray-400">Pages:</span>
                 {#if isEditing}
                   <input type="number" bind:value={editedBook.pages} class="input w-24" />
                 {:else}
-                  <span>{book.pages || 'Unknown'}</span>
+                  <span class="text-gray-900 dark:text-white">{book.pages || 'Unknown'}</span>
                 {/if}
               </div>
               
@@ -165,7 +165,7 @@
                 {#if isEditing}
                   <input bind:value={editedBook.publisher} class="input flex-1 ml-4" />
                 {:else}
-                  <span>{book.publisher || 'Unknown'}</span>
+                  <span class="text-gray-900 dark:text-white">{book.publisher || 'Unknown'}</span>
                 {/if}
               </div>
               
@@ -174,7 +174,7 @@
                 {#if isEditing}
                   <input type="number" bind:value={editedBook.edition_published} class="input w-24" />
                 {:else}
-                  <span>{book.edition_published || 'Unknown'}</span>
+                  <span class="text-gray-900 dark:text-white">{book.edition_published || 'Unknown'}</span>
                 {/if}
               </div>
               
@@ -183,7 +183,7 @@
                 {#if isEditing}
                   <input bind:value={editedBook.binding} class="input flex-1 ml-4" />
                 {:else}
-                  <span>{book.binding || 'Unknown'}</span>
+                  <span class="text-gray-900 dark:text-white">{book.binding || 'Unknown'}</span>
                 {/if}
               </div>
               
@@ -192,7 +192,7 @@
                 {#if isEditing}
                   <input bind:value={editedBook.isbn} class="input flex-1 ml-4" />
                 {:else}
-                  <span>{book.isbn || 'Not available'}</span>
+                  <span class="text-gray-900 dark:text-white">{book.isbn || 'Not available'}</span>
                 {/if}
               </div>
             </div>
@@ -200,7 +200,7 @@
           
           <!-- Reading info -->
           <div>
-            <h2 class="text-lg font-semibold mb-4">Reading Information</h2>
+            <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Reading Information</h2>
             <div class="space-y-3">
               <div class="flex justify-between">
                 <span class="text-gray-600 dark:text-gray-400">Your Rating:</span>
@@ -214,13 +214,13 @@
                     <option value={5}>5 stars</option>
                   </select>
                 {:else}
-                  <span>{getRatingStars(book.rating)}</span>
+                  <span class="text-gray-900 dark:text-white">{getRatingStars(book.rating)}</span>
                 {/if}
               </div>
               
               <div class="flex justify-between">
                 <span class="text-gray-600 dark:text-gray-400">Average Rating:</span>
-                <span>{book.average_rating ? book.average_rating.toFixed(1) : 'Not rated'}</span>
+                <span class="text-gray-900 dark:text-white">{book.average_rating ? book.average_rating.toFixed(1) : 'Not rated'}</span>
               </div>
               
               <div class="flex justify-between">
@@ -228,7 +228,7 @@
                 {#if isEditing}
                   <input type="date" bind:value={editedBook.date_read} class="input w-40" />
                 {:else}
-                  <span>{formatDate(book.date_read)}</span>
+                  <span class="text-gray-900 dark:text-white">{formatDate(book.date_read)}</span>
                 {/if}
               </div>
               
@@ -237,7 +237,7 @@
                 {#if isEditing}
                   <input type="number" bind:value={editedBook.read_count} class="input w-20" min="0" />
                 {:else}
-                  <span>{book.read_count || 0} time{book.read_count !== 1 ? 's' : ''}</span>
+                  <span class="text-gray-900 dark:text-white">{book.read_count || 0} time{book.read_count !== 1 ? 's' : ''}</span>
                 {/if}
               </div>
               
@@ -251,7 +251,7 @@
                     <option value="read">Read</option>
                   </select>
                 {:else}
-                  <span class="capitalize">{book.exclusive_shelf?.replace('-', ' ') || 'No status'}</span>
+                  <span class="capitalize text-gray-900 dark:text-white">{book.exclusive_shelf?.replace('-', ' ') || 'No status'}</span>
                 {/if}
               </div>
             </div>
@@ -263,7 +263,7 @@
           <!-- BEq info -->
           {#if book.beq_value}
             <div>
-              <h2 class="text-lg font-semibold mb-4">Book Equivalent (BEq)</h2>
+              <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Book Equivalent (BEq)</h2>
               <div class="bg-primary-50 dark:bg-primary-900 rounded-lg p-4">
                 <div class="text-center">
                   <div class="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">
@@ -283,7 +283,7 @@
           <!-- Shelves -->
           {#if book.shelves.length > 0}
             <div>
-              <h2 class="text-lg font-semibold mb-4">Shelves</h2>
+              <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Shelves</h2>
               <div class="flex flex-wrap gap-2">
                 {#each book.shelves as shelf}
                   <span class="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm">
@@ -296,7 +296,7 @@
           
           <!-- Review -->
           <div>
-            <h2 class="text-lg font-semibold mb-4">Your Review</h2>
+            <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Your Review</h2>
             {#if isEditing}
               <textarea
                 bind:value={editedBook.my_review}
@@ -312,7 +312,7 @@
           
           <!-- Private notes -->
           <div>
-            <h2 class="text-lg font-semibold mb-4">Private Notes</h2>
+            <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Private Notes</h2>
             {#if isEditing}
               <textarea
                 bind:value={editedBook.private_notes}

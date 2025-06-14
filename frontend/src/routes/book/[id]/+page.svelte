@@ -2,7 +2,8 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { api, type Book } from '$lib/api';
+  import { api } from '$lib/api';
+  import type { Book } from '$lib/api';
   import { isLoading, error, setLoading, clearError } from '$lib/stores';
   
   let book: Book | null = null;

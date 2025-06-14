@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { api, type ReadingStats } from '$lib/api';
+  import { api } from '$lib/api';
+  import type { ReadingStats } from '$lib/api';
   import { stats, books, isLoading, error, setLoading, clearError } from '$lib/stores';
   
   let readingStats: ReadingStats | null = null;

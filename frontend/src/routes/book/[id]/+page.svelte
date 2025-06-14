@@ -61,12 +61,12 @@
     editedBook = { ...book };
   }
   
-  function formatDate(dateString: string | undefined): string {
+  function formatDate(dateString) {
     if (!dateString) return 'Not set';
     return new Date(dateString).toLocaleDateString();
   }
   
-  function getRatingStars(rating: number | undefined): string {
+  function getRatingStars(rating) {
     if (!rating) return 'Not rated';
     return '★'.repeat(rating) + '☆'.repeat(5 - rating);
   }

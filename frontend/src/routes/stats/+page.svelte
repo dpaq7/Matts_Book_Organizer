@@ -1,13 +1,12 @@
-<script lang="ts">
+<script>
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
-  import type { ReadingStats } from '$lib/api';
   import { stats, books, isLoading, error, setLoading, clearError } from '$lib/stores';
   
-  let readingStats: ReadingStats | null = null;
-  let topAuthors: { author: string; count: number }[] = [];
-  let yearlyReading: { year: number; count: number }[] = [];
-  let ratingDistribution: { rating: number; count: number }[] = [];
+  let readingStats = null;
+  let topAuthors = [];
+  let yearlyReading = [];
+  let ratingDistribution = [];
   
   onMount(async () => {
     await loadStats();
@@ -72,18 +71,18 @@
     }));
   }
   
-  function formatDate(dateString: string): string {
+  function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString();
   }
   
-  function getAverageRating(booksData: any[]): number {
+  function getAverageRating(booksData) {
     const ratedBooks = booksData.filter(book => book.rating);
     if (ratedBooks.length === 0) return 0;
     const sum = ratedBooks.reduce((acc, book) => acc + book.rating, 0);
     return sum / ratedBooks.length;
   }
   
-  function getPagesPerDay(stats: ReadingStats): number {
+  function getPagesPerDay(stats) {
     if (!stats.total_books_read || !stats.total_pages_read) return 0;
     // Rough estimate: assume 1 book per month average
     const estimatedDays = stats.total_books_read * 30;

@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
   import { books, isLoading, error, filteredBooks, setLoading, clearError } from '$lib/stores';

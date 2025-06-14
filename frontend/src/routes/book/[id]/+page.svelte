@@ -1,14 +1,13 @@
-<script lang="ts">
+<script>
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { api } from '$lib/api';
-  import type { Book } from '$lib/api';
   import { isLoading, error, setLoading, clearError } from '$lib/stores';
   
-  let book: Book | null = null;
+  let book = null;
   let isEditing = false;
-  let editedBook: Partial<Book> = {};
+  let editedBook = {};
   
   $: bookId = parseInt($page.params.id);
   

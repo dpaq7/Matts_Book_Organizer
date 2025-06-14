@@ -1,10 +1,9 @@
-<script lang="ts">
+<script>
   import { goto } from '$app/navigation';
   import { api } from '$lib/api';
-  import type { Book } from '$lib/api';
   import { isLoading, error, setLoading, clearError } from '$lib/stores';
   
-  let newBook: Partial<Book> = {
+  let newBook = {
     title: '',
     author: '',
     pages: undefined,

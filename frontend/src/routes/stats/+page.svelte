@@ -35,9 +35,9 @@
     }
   }
   
-  function calculateStatistics(booksData: any[]) {
+  function calculateStatistics(booksData) {
     // Top authors
-    const authorCounts: Record<string, number> = {};
+    const authorCounts = {};
     booksData.forEach(book => {
       authorCounts[book.author] = (authorCounts[book.author] || 0) + 1;
     });
@@ -47,7 +47,7 @@
       .slice(0, 10);
     
     // Yearly reading
-    const yearlyCounts: Record<number, number> = {};
+    const yearlyCounts = {};
     booksData
       .filter(book => book.date_read)
       .forEach(book => {
@@ -59,7 +59,7 @@
       .sort((a, b) => a.year - b.year);
     
     // Rating distribution
-    const ratingCounts: Record<number, number> = {};
+    const ratingCounts = {};
     booksData
       .filter(book => book.rating)
       .forEach(book => {

@@ -36,6 +36,9 @@ export function Sidebar() {
           </Link>
         ))}
       </nav>
+      <div className="mt-auto pt-4 px-2">
+        <span className="text-xs text-muted-foreground/50">v0.1.0</span>
+      </div>
     </aside>
   );
 }

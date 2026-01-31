@@ -43,7 +43,6 @@ next-env.d.ts
 # tauri
 /src-tauri/target/
 /src-tauri/gen/
-/src-tauri/icons/
 
 # data
 /data/*.db

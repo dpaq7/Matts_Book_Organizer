@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RatingStars } from "./rating-stars";
-import { createBook, updateBook, lookupISBN, type Book, type BookWithShelves, type ShelfWithCount } from "@/lib/tauri";
+import { createBook, updateBook, lookupISBN, type BookWithShelves, type ShelfWithCount } from "@/lib/tauri";
 import { calculateBeq, getCoverUrl } from "@/lib/utils";
 import { Loader2, Search } from "lucide-react";
 

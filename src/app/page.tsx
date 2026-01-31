@@ -36,7 +36,25 @@ function HomeInner() {
     }
   }, [search, sortBy, sortDir, page, exclusiveShelf, shelf]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [booksResult, shelvesResult] = await Promise.all([
+          getBooks({ search, sortBy, sortDir, page, limit: 50, exclusiveShelf: exclusiveShelf || undefined, shelf: shelf || undefined }),
+          getShelves(),
+        ]);
+        if (!cancelled) {
+          setBooks(booksResult.books);
+          setTotal(booksResult.total);
+          setShelves(shelvesResult);
+        }
+      } catch (e) {
+        console.error("Failed to fetch books:", e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [search, sortBy, sortDir, page, exclusiveShelf, shelf]);
 
   return (
     <div>

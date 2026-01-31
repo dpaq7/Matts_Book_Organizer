@@ -183,7 +183,7 @@ pub fn create_book(state: State<DbState>, data: NewBook) -> Result<Book, String>
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let beq = calculate_beq(data.pages);
     let cover_url = data.cover_url.clone().or_else(|| get_cover_url(&data.isbn, &data.isbn13));
-    let date_added = data.date_added.clone().unwrap_or_else(|| chrono_today());
+    let date_added = data.date_added.clone().unwrap_or_else(chrono_today);
 
     conn.execute(
         "INSERT INTO books (goodreads_id, title, author, author_sort, additional_authors, isbn, isbn13, my_rating, average_rating, publisher, binding, pages, beq, edition_published, year_published, date_read, year_read, date_added, exclusive_shelf, my_review, read_count, owned_copies, cover_url)

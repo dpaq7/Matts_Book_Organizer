@@ -18,6 +18,11 @@ import { ArrowUpDown, ArrowUp, ArrowDown, Trash2, ChevronLeft, ChevronRight } fr
 import { deleteBook, type Book, type SortField, type SortDir } from "@/lib/tauri";
 import { formatDate } from "@/lib/utils";
 
+function SortIcon({ field, sortBy, sortDir }: { field: SortField; sortBy: SortField; sortDir: SortDir }) {
+  if (sortBy !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-30" />;
+  return sortDir === "asc" ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+}
+
 interface BookTableProps {
   books: Book[];
   total: number;
@@ -65,11 +70,6 @@ export function BookTable({ books, total, page, limit, search, sortBy, sortDir, 
     });
   }
 
-  function SortIcon({ field }: { field: SortField }) {
-    if (sortBy !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-30" />;
-    return sortDir === "asc" ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
-  }
-
   const exclusiveShelves = ["all", "read", "currently-reading", "to-read", "shelved", "to-read-non-fiction"];
 
   return (
@@ -100,13 +100,13 @@ export function BookTable({ books, total, page, limit, search, sortBy, sortDir, 
           <TableHeader>
             <TableRow>
               <TableHead className="w-12"></TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("title")}><span className="flex items-center">Title <SortIcon field="title" /></span></TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("author")}><span className="flex items-center">Author <SortIcon field="author" /></span></TableHead>
-              <TableHead className="cursor-pointer select-none w-24" onClick={() => handleSort("myRating")}><span className="flex items-center">Rating <SortIcon field="myRating" /></span></TableHead>
-              <TableHead className="cursor-pointer select-none w-20 text-right" onClick={() => handleSort("pages")}><span className="flex items-center justify-end">Pages <SortIcon field="pages" /></span></TableHead>
-              <TableHead className="cursor-pointer select-none w-20 text-right" onClick={() => handleSort("beq")}><span className="flex items-center justify-end">BEq <SortIcon field="beq" /></span></TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("title")}><span className="flex items-center">Title <SortIcon sortBy={sortBy} sortDir={sortDir} field="title" /></span></TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("author")}><span className="flex items-center">Author <SortIcon sortBy={sortBy} sortDir={sortDir} field="author" /></span></TableHead>
+              <TableHead className="cursor-pointer select-none w-24" onClick={() => handleSort("myRating")}><span className="flex items-center">Rating <SortIcon sortBy={sortBy} sortDir={sortDir} field="myRating" /></span></TableHead>
+              <TableHead className="cursor-pointer select-none w-20 text-right" onClick={() => handleSort("pages")}><span className="flex items-center justify-end">Pages <SortIcon sortBy={sortBy} sortDir={sortDir} field="pages" /></span></TableHead>
+              <TableHead className="cursor-pointer select-none w-20 text-right" onClick={() => handleSort("beq")}><span className="flex items-center justify-end">BEq <SortIcon sortBy={sortBy} sortDir={sortDir} field="beq" /></span></TableHead>
               <TableHead className="w-28">Status</TableHead>
-              <TableHead className="cursor-pointer select-none w-28" onClick={() => handleSort("dateRead")}><span className="flex items-center">Date Read <SortIcon field="dateRead" /></span></TableHead>
+              <TableHead className="cursor-pointer select-none w-28" onClick={() => handleSort("dateRead")}><span className="flex items-center">Date Read <SortIcon sortBy={sortBy} sortDir={sortDir} field="dateRead" /></span></TableHead>
               <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>

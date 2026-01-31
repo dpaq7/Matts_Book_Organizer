@@ -104,7 +104,7 @@ export function CsvImporter() {
     });
   }
 
-  const mappedRequired = BOOK_FIELDS.filter((f) => f.required).every(
+  const mappedRequired = BOOK_FIELDS.filter((f) => "required" in f && f.required).every(
     (f) => columnMap[f.key]
   );
 

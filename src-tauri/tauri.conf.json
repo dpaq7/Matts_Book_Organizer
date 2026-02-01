@@ -1,7 +1,7 @@
 {
   "productName": "Matt's Book Organizer",
   "identifier": "com.matts-book-organizer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3000",

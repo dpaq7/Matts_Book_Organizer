@@ -23,6 +23,8 @@ export default function StatsPage() {
         <StatCard icon={Star} label="Avg Rating" value={stats.avgRating} />
         <StatCard icon={Calendar} label="Books This Year" value={stats.booksThisYear} />
         <StatCard icon={BarChart3} label="BEq This Year" value={stats.beqThisYear} />
+        <StatCard icon={BarChart3} label="BEq_B (Traditional)" value={stats.totalBeqTraditional} subtitle={stats.avgPagesTraditional > 0 ? `÷ ${Math.round(stats.avgPagesTraditional)} avg pp` : undefined} />
+        <StatCard icon={BarChart3} label="BEq_G (Graphic Novel)" value={stats.totalBeqGraphicNovel} subtitle={stats.avgPagesGraphicNovel > 0 ? `÷ ${Math.round(stats.avgPagesGraphicNovel)} avg pp` : undefined} />
       </div>
 
       {/* Books by Year */}
@@ -81,7 +83,7 @@ export default function StatsPage() {
   );
 }
 
-function StatCard({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) {
+function StatCard({ icon: Icon, label, value, subtitle }: { icon: React.ElementType; label: string; value: number; subtitle?: string }) {
   return (
     <Card>
       <CardContent className="pt-4">
@@ -90,6 +92,7 @@ function StatCard({ icon: Icon, label, value }: { icon: React.ElementType; label
           <span className="text-xs">{label}</span>
         </div>
         <p className="text-2xl font-bold">{value}</p>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </CardContent>
     </Card>
   );

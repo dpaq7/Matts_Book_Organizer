@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Library, Upload, BarChart3, Plus } from "lucide-react";
+import { BookOpen, Library, Upload, BarChart3, Plus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -11,6 +11,7 @@ const links = [
   { href: "/books/new", label: "Add Book", icon: Plus },
   { href: "/import", label: "Import CSV", icon: Upload },
   { href: "/stats", label: "Stats", icon: BarChart3 },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {

@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RatingStars } from "./rating-stars";
-import { createBook, updateBook, lookupISBN, type BookWithShelves, type ShelfWithCount } from "@/lib/tauri";
-import { calculateBeq, getCoverUrl } from "@/lib/utils";
+import { createBook, updateBook, lookupISBN, lookupCover, type BookWithShelves, type ShelfWithCount } from "@/lib/tauri";
+import { getCoverUrl } from "@/lib/utils";
 import { Loader2, Search } from "lucide-react";
+import { CoverImage } from "./cover-image";
 
 interface BookFormProps {
   book?: BookWithShelves;
@@ -31,11 +32,13 @@ export function BookForm({ book, allShelves }: BookFormProps) {
   const [publisher, setPublisher] = useState(book?.publisher || "");
   const [pages, setPages] = useState(book?.pages?.toString() || "");
   const [binding, setBinding] = useState(book?.binding || "");
+  const [bookType, setBookType] = useState(book?.bookType || "traditional");
   const [yearPublished, setYearPublished] = useState(book?.yearPublished?.toString() || "");
   const [rating, setRating] = useState(book?.myRating || 0);
   const [exclusiveShelf, setExclusiveShelf] = useState(book?.exclusiveShelf || "to-read");
   const [dateRead, setDateRead] = useState(book?.dateRead || "");
   const [review, setReview] = useState(book?.myReview || "");
+  const [coverUrl, setCoverUrl] = useState(book?.coverUrl || "");
   const [selectedShelves, setSelectedShelves] = useState<string[]>(
     book?.shelves?.map((s) => s.name) || []
   );
@@ -46,12 +49,17 @@ export function BookForm({ book, allShelves }: BookFormProps) {
     setFetching(true);
     try {
       const data = await lookupISBN(lookupIsbn);
+      const fetchedTitle = data?.title || title;
+      const fetchedAuthor = data?.authors?.[0]?.name || author;
       if (data) {
         if (data.title && !title) setTitle(data.title);
         if (data.authors?.[0]?.name && !author) setAuthor(data.authors[0].name);
         if (data.publishers?.[0]?.name && !publisher) setPublisher(data.publishers[0].name);
         if (data.number_of_pages && !pages) setPages(data.number_of_pages.toString());
       }
+      // Resolve cover via fallback chain
+      const cover = await lookupCover(isbn || null, isbn13 || null, fetchedTitle, fetchedAuthor);
+      if (cover) setCoverUrl(cover);
     } finally {
       setFetching(false);
     }
@@ -68,14 +76,14 @@ export function BookForm({ book, allShelves }: BookFormProps) {
       isbn13: isbn13 || null,
       publisher: publisher || null,
       pages: pageNum,
-      beq: calculateBeq(pageNum),
       binding: binding || null,
+      bookType,
       yearPublished: parseInt(yearPublished) || null,
       myRating: rating,
       exclusiveShelf,
       dateRead: dateRead || null,
       myReview: review || null,
-      coverUrl: getCoverUrl(isbn, isbn13),
+      coverUrl: coverUrl || getCoverUrl(isbn, isbn13),
       shelfNames: selectedShelves,
     };
 
@@ -116,8 +124,32 @@ export function BookForm({ book, allShelves }: BookFormProps) {
         <div className="space-y-2"><Label>Publisher</Label><Input value={publisher} onChange={(e) => setPublisher(e.target.value)} /></div>
         <div className="space-y-2"><Label>Pages</Label><Input type="number" value={pages} onChange={(e) => setPages(e.target.value)} /></div>
         <div className="space-y-2"><Label>Binding</Label><Input value={binding} onChange={(e) => setBinding(e.target.value)} placeholder="Paperback, Hardcover..." /></div>
+        <div className="space-y-2">
+          <Label>Book Type</Label>
+          <Select value={bookType} onValueChange={setBookType}>
+            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="traditional">Traditional</SelectItem>
+              <SelectItem value="graphic_novel">Graphic Novel</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-2"><Label>Year Published</Label><Input type="number" value={yearPublished} onChange={(e) => setYearPublished(e.target.value)} /></div>
         <div className="space-y-2"><Label>Date Read</Label><Input type="date" value={dateRead?.replace(/\//g, "-") || ""} onChange={(e) => setDateRead(e.target.value)} /></div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Cover URL</Label>
+        <div className="flex gap-3 items-start">
+          <Input
+            value={coverUrl}
+            onChange={(e) => setCoverUrl(e.target.value)}
+            placeholder="https://... (paste a cover image URL)"
+            className="flex-1"
+          />
+          <CoverImage url={coverUrl || null} title={title || "Preview"} size="md" />
+        </div>
+        <p className="text-xs text-muted-foreground">Auto-filled by ISBN Fetch, or paste your own image URL</p>
       </div>
 
       <div className="space-y-2"><Label>My Rating</Label><RatingStars rating={rating} onChange={setRating} readonly={false} /></div>

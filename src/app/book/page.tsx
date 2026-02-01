@@ -91,6 +91,7 @@ function BookDetailInner() {
         <Detail label="Binding" value={book.binding} />
         <Detail label="Pages" value={book.pages?.toString()} />
         <Detail label="BEq" value={book.beq?.toFixed(2)} />
+        <Detail label="Book Type" value={book.bookType === "graphic_novel" ? "Graphic Novel" : "Traditional"} />
         <Detail label="ISBN" value={book.isbn} />
         <Detail label="ISBN-13" value={book.isbn13} />
         <Detail label="Published" value={book.yearPublished?.toString()} />

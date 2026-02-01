@@ -22,6 +22,7 @@ pub fn init_db(app: &AppHandle) -> Result<DbState, String> {
     conn.execute_batch("PRAGMA busy_timeout = 5000;").ok();
 
     create_tables(&conn)?;
+    run_migrations(&conn)?;
 
     Ok(DbState {
         conn: Mutex::new(conn),
@@ -81,4 +82,19 @@ fn create_tables(conn: &Connection) -> Result<(), String> {
         ",
     )
     .map_err(|e| format!("Failed to create tables: {}", e))
+}
+
+fn run_migrations(conn: &Connection) -> Result<(), String> {
+    // Migration 1: Add book_type column
+    let has_book_type: bool = conn
+        .prepare("SELECT COUNT(*) FROM pragma_table_info('books') WHERE name = 'book_type'")
+        .and_then(|mut s| s.query_row([], |r| r.get::<_, i64>(0)))
+        .unwrap_or(0) > 0;
+
+    if !has_book_type {
+        conn.execute_batch("ALTER TABLE books ADD COLUMN book_type TEXT NOT NULL DEFAULT 'traditional'")
+            .map_err(|e| format!("Migration failed (book_type): {}", e))?;
+    }
+
+    Ok(())
 }

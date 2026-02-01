@@ -30,6 +30,7 @@ export interface Book {
   openLibraryKey: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+  bookType: string;
 }
 
 export interface BookWithShelves extends Book {
@@ -55,12 +56,17 @@ export interface BooksResult {
 export interface ImportResult {
   imported: number;
   total: number;
+  skipped: string[];
 }
 
 export interface Stats {
   totalBooks: number;
   totalRead: number;
   totalBeq: number;
+  totalBeqTraditional: number;
+  totalBeqGraphicNovel: number;
+  avgPagesTraditional: number;
+  avgPagesGraphicNovel: number;
   avgRating: number;
   booksThisYear: number;
   beqThisYear: number;
@@ -95,7 +101,6 @@ export interface NewBook {
   publisher?: string | null;
   binding?: string | null;
   pages?: number | null;
-  beq?: number | null;
   editionPublished?: number | null;
   yearPublished?: number | null;
   dateRead?: string | null;
@@ -107,6 +112,7 @@ export interface NewBook {
   ownedCopies?: number | null;
   coverUrl?: string | null;
   shelfNames?: string[];
+  bookType?: string;
 }
 
 export type SortField = "title" | "author" | "myRating" | "pages" | "beq" | "dateRead" | "dateAdded" | "yearPublished" | "averageRating";
@@ -182,10 +188,27 @@ export async function lookupISBN(isbn: string): Promise<OpenLibraryBookData | nu
   return invoke("lookup_isbn", { isbn });
 }
 
+export interface FixCoversResult {
+  fixed: number;
+  checked: number;
+}
+
+export async function fixMissingCovers(): Promise<FixCoversResult> {
+  return invoke("fix_missing_covers");
+}
+
+export async function lookupCover(isbn: string | null, isbn13: string | null, title: string, author: string): Promise<string | null> {
+  return invoke("lookup_cover", { isbn, isbn13, title, author });
+}
+
 export async function getStats(): Promise<Stats> {
   return invoke("get_stats");
 }
 
 export async function getShelfCounts(): Promise<ShelfCount[]> {
   return invoke("get_shelf_counts");
+}
+
+export async function clearDatabase(): Promise<void> {
+  return invoke("clear_database");
 }

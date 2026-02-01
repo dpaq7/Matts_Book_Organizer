@@ -3,6 +3,21 @@ use crate::models::*;
 use rusqlite::params;
 use tauri::State;
 
+/// SQL expression that computes BEq on-the-fly using per-book-type average pages
+const BEQ_EXPR: &str = "CASE WHEN books.pages > 0 THEN ROUND(books.pages * 1.0 / NULLIF((SELECT AVG(b2.pages) FROM books b2 WHERE b2.book_type = books.book_type AND b2.exclusive_shelf = 'read' AND b2.pages > 0), 0), 2) ELSE NULL END";
+
+/// All columns we SELECT (with computed beq instead of stored beq)
+fn select_columns() -> String {
+    format!(
+        "books.id, books.goodreads_id, books.title, books.author, books.author_sort, books.additional_authors, \
+         books.isbn, books.isbn13, books.my_rating, books.average_rating, books.publisher, books.binding, \
+         books.pages, {BEQ_EXPR} AS beq, books.edition_published, books.year_published, \
+         books.date_read, books.year_read, books.date_added, books.exclusive_shelf, books.my_review, \
+         books.read_count, books.owned_copies, books.cover_url, books.open_library_key, \
+         books.created_at, books.updated_at, books.book_type"
+    )
+}
+
 fn row_to_book(row: &rusqlite::Row) -> rusqlite::Result<Book> {
     Ok(Book {
         id: row.get(0)?,
@@ -32,6 +47,7 @@ fn row_to_book(row: &rusqlite::Row) -> rusqlite::Result<Book> {
         open_library_key: row.get(24)?,
         created_at: row.get(25)?,
         updated_at: row.get(26)?,
+        book_type: row.get::<_, Option<String>>(27)?.unwrap_or_else(|| "traditional".to_string()),
     })
 }
 
@@ -52,15 +68,15 @@ pub fn get_books(
     let offset = (page - 1) * limit;
 
     let sort_col = match sort_by.as_deref() {
-        Some("title") => "title",
-        Some("author") => "author_sort",
-        Some("myRating") => "my_rating",
-        Some("pages") => "pages",
+        Some("title") => "books.title",
+        Some("author") => "books.author_sort",
+        Some("myRating") => "books.my_rating",
+        Some("pages") => "books.pages",
         Some("beq") => "beq",
-        Some("dateRead") => "date_read",
-        Some("yearPublished") => "year_published",
-        Some("averageRating") => "average_rating",
-        _ => "date_added",
+        Some("dateRead") => "books.date_read",
+        Some("yearPublished") => "books.year_published",
+        Some("averageRating") => "books.average_rating",
+        _ => "books.date_added",
     };
     let dir = if sort_dir.as_deref() == Some("asc") { "ASC" } else { "DESC" };
 
@@ -70,7 +86,7 @@ pub fn get_books(
     if let Some(ref s) = search {
         if !s.is_empty() {
             let pattern = format!("%{}%", s);
-            conditions.push("(title LIKE ?1 OR author LIKE ?1 OR isbn LIKE ?1 OR isbn13 LIKE ?1)".to_string());
+            conditions.push("(books.title LIKE ?1 OR books.author LIKE ?1 OR books.isbn LIKE ?1 OR books.isbn13 LIKE ?1)".to_string());
             param_values.push(Box::new(pattern));
         }
     }
@@ -78,17 +94,16 @@ pub fn get_books(
     if let Some(ref es) = exclusive_shelf {
         if !es.is_empty() && es != "all" {
             let idx = param_values.len() + 1;
-            conditions.push(format!("exclusive_shelf = ?{}", idx));
+            conditions.push(format!("books.exclusive_shelf = ?{}", idx));
             param_values.push(Box::new(es.clone()));
         }
     }
 
-    // Handle shelf filter via subquery
     if let Some(ref shelf_name) = shelf {
         if !shelf_name.is_empty() && shelf_name != "all" {
             let idx = param_values.len() + 1;
             conditions.push(format!(
-                "id IN (SELECT bs.book_id FROM book_shelves bs JOIN shelves s ON bs.shelf_id = s.id WHERE s.name = ?{})",
+                "books.id IN (SELECT bs.book_id FROM book_shelves bs JOIN shelves s ON bs.shelf_id = s.id WHERE s.name = ?{})",
                 idx
             ));
             param_values.push(Box::new(shelf_name.clone()));
@@ -107,10 +122,10 @@ pub fn get_books(
         .query_row(&count_sql, rusqlite::params_from_iter(param_values.iter().map(|p| p.as_ref())), |r| r.get(0))
         .map_err(|e| e.to_string())?;
 
-    // Query
+    // Query with computed BEq
     let query_sql = format!(
-        "SELECT * FROM books {} ORDER BY {} {} LIMIT {} OFFSET {}",
-        where_clause, sort_col, dir, limit, offset
+        "SELECT {} FROM books {} ORDER BY {} {} LIMIT {} OFFSET {}",
+        select_columns(), where_clause, sort_col, dir, limit, offset
     );
     let mut stmt = conn.prepare(&query_sql).map_err(|e| e.to_string())?;
     let books: Vec<Book> = stmt
@@ -126,8 +141,9 @@ pub fn get_books(
 pub fn get_book(state: State<DbState>, id: i64) -> Result<BookWithShelves, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
 
+    let sql = format!("SELECT {} FROM books WHERE books.id = ?1", select_columns());
     let book = conn
-        .query_row("SELECT * FROM books WHERE id = ?1", params![id], row_to_book)
+        .query_row(&sql, params![id], row_to_book)
         .map_err(|e| format!("Book not found: {}", e))?;
 
     let mut stmt = conn
@@ -168,10 +184,6 @@ fn link_shelves(conn: &rusqlite::Connection, book_id: i64, shelf_names: &[String
     Ok(())
 }
 
-pub fn calculate_beq(pages: Option<i64>) -> Option<f64> {
-    pages.filter(|&p| p > 0).map(|p| ((p as f64 / 348.0) * 100.0).round() / 100.0)
-}
-
 fn get_cover_url(isbn: &Option<String>, isbn13: &Option<String>) -> Option<String> {
     let id = isbn13.as_deref().or(isbn.as_deref())?;
     if id.is_empty() { return None; }
@@ -181,19 +193,19 @@ fn get_cover_url(isbn: &Option<String>, isbn13: &Option<String>) -> Option<Strin
 #[tauri::command]
 pub fn create_book(state: State<DbState>, data: NewBook) -> Result<Book, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    let beq = calculate_beq(data.pages);
     let cover_url = data.cover_url.clone().or_else(|| get_cover_url(&data.isbn, &data.isbn13));
     let date_added = data.date_added.clone().unwrap_or_else(chrono_today);
+    let book_type = data.book_type.as_deref().unwrap_or("traditional");
 
     conn.execute(
-        "INSERT INTO books (goodreads_id, title, author, author_sort, additional_authors, isbn, isbn13, my_rating, average_rating, publisher, binding, pages, beq, edition_published, year_published, date_read, year_read, date_added, exclusive_shelf, my_review, read_count, owned_copies, cover_url)
+        "INSERT INTO books (goodreads_id, title, author, author_sort, additional_authors, isbn, isbn13, my_rating, average_rating, publisher, binding, pages, edition_published, year_published, date_read, year_read, date_added, exclusive_shelf, my_review, read_count, owned_copies, cover_url, book_type)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23)",
         params![
             data.goodreads_id, data.title, data.author, data.author_sort, data.additional_authors,
             data.isbn, data.isbn13, data.my_rating.unwrap_or(0), data.average_rating,
-            data.publisher, data.binding, data.pages, beq, data.edition_published, data.year_published,
+            data.publisher, data.binding, data.pages, data.edition_published, data.year_published,
             data.date_read, data.year_read, date_added, data.exclusive_shelf.as_deref().unwrap_or("to-read"),
-            data.my_review, data.read_count.unwrap_or(0), data.owned_copies.unwrap_or(0), cover_url,
+            data.my_review, data.read_count.unwrap_or(0), data.owned_copies.unwrap_or(0), cover_url, book_type,
         ],
     ).map_err(|e| e.to_string())?;
 
@@ -203,28 +215,29 @@ pub fn create_book(state: State<DbState>, data: NewBook) -> Result<Book, String>
         link_shelves(&conn, book_id, names)?;
     }
 
-    conn.query_row("SELECT * FROM books WHERE id = ?1", params![book_id], row_to_book)
+    let sql = format!("SELECT {} FROM books WHERE books.id = ?1", select_columns());
+    conn.query_row(&sql, params![book_id], row_to_book)
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn update_book(state: State<DbState>, id: i64, data: NewBook) -> Result<(), String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    let beq = calculate_beq(data.pages);
     let cover_url = data.cover_url.clone().or_else(|| get_cover_url(&data.isbn, &data.isbn13));
+    let book_type = data.book_type.as_deref().unwrap_or("traditional");
 
     conn.execute(
         "UPDATE books SET title=?1, author=?2, author_sort=?3, additional_authors=?4, isbn=?5, isbn13=?6,
-         my_rating=?7, average_rating=?8, publisher=?9, binding=?10, pages=?11, beq=?12,
-         edition_published=?13, year_published=?14, date_read=?15, year_read=?16,
-         exclusive_shelf=?17, my_review=?18, read_count=?19, owned_copies=?20, cover_url=?21,
-         updated_at=datetime('now') WHERE id=?22",
+         my_rating=?7, average_rating=?8, publisher=?9, binding=?10, pages=?11,
+         edition_published=?12, year_published=?13, date_read=?14, year_read=?15,
+         exclusive_shelf=?16, my_review=?17, read_count=?18, owned_copies=?19, cover_url=?20,
+         book_type=?21, updated_at=datetime('now') WHERE id=?22",
         params![
             data.title, data.author, data.author_sort, data.additional_authors,
             data.isbn, data.isbn13, data.my_rating.unwrap_or(0), data.average_rating,
-            data.publisher, data.binding, data.pages, beq, data.edition_published, data.year_published,
+            data.publisher, data.binding, data.pages, data.edition_published, data.year_published,
             data.date_read, data.year_read, data.exclusive_shelf, data.my_review,
-            data.read_count.unwrap_or(0), data.owned_copies.unwrap_or(0), cover_url, id,
+            data.read_count.unwrap_or(0), data.owned_copies.unwrap_or(0), cover_url, book_type, id,
         ],
     ).map_err(|e| e.to_string())?;
 
@@ -245,13 +258,19 @@ pub fn delete_book(state: State<DbState>, id: i64) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+pub fn clear_database(state: State<DbState>) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute_batch("DELETE FROM book_shelves; DELETE FROM shelves; DELETE FROM books;")
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 fn chrono_today() -> String {
-    // Simple date without chrono crate
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    // Approximate — good enough for a default
     let days = now / 86400;
     let years = 1970 + days / 365;
     format!("{}/01/01", years)

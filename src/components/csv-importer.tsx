@@ -32,6 +32,7 @@ const BOOK_FIELDS = [
   { key: "owned_copies", label: "Owned Copies" },
   { key: "bookshelves", label: "Shelves / Tags" },
   { key: "goodreads_id", label: "Goodreads ID" },
+  { key: "book_type", label: "Book Type" },
 ] as const;
 
 type Step = "upload" | "map" | "done";
@@ -40,7 +41,7 @@ export function CsvImporter() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [step, setStep] = useState<Step>("upload");
-  const [result, setResult] = useState<{ imported: number; total: number } | null>(null);
+  const [result, setResult] = useState<{ imported: number; total: number; skipped: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [csvText, setCsvText] = useState<string | null>(null);
@@ -191,8 +192,22 @@ export function CsvImporter() {
 
         {/* Step 3: Results */}
         {step === "done" && result && (
-          <div className="text-sm text-green-600 dark:text-green-400">
-            Successfully imported {result.imported} of {result.total} books.
+          <div className="space-y-2">
+            <div className="text-sm text-green-600 dark:text-green-400">
+              Successfully imported {result.imported} of {result.total} books.
+            </div>
+            {result.skipped.length > 0 && (
+              <details className="text-sm">
+                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                  Skipped {result.skipped.length} duplicate{result.skipped.length === 1 ? "" : "s"}
+                </summary>
+                <ul className="mt-1 max-h-48 overflow-y-auto space-y-0.5 pl-4 text-xs text-muted-foreground">
+                  {result.skipped.map((title, i) => (
+                    <li key={i}>• {title}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </div>
         )}
 

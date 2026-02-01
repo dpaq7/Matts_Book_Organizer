@@ -20,6 +20,7 @@ pub fn run() {
             commands::books::create_book,
             commands::books::update_book,
             commands::books::delete_book,
+            commands::books::clear_database,
             commands::shelves::get_shelves,
             commands::shelves::create_shelf,
             commands::shelves::rename_shelf,
@@ -28,6 +29,8 @@ pub fn run() {
             commands::import::auto_detect_columns,
             commands::import::import_csv,
             commands::metadata::lookup_isbn,
+            commands::covers::fix_missing_covers,
+            commands::covers::lookup_cover,
             commands::stats::get_stats,
             commands::stats::get_shelf_counts,
         ])

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,21 @@ function SortIcon({ field, sortBy, sortDir }: { field: SortField; sortBy: SortFi
   return sortDir === "asc" ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
 }
 
+// Default column widths in pixels
+const DEFAULT_WIDTHS = {
+  cover: 48,
+  title: 280,
+  author: 180,
+  rating: 96,
+  pages: 72,
+  beq: 72,
+  status: 112,
+  dateRead: 112,
+  actions: 40,
+};
+
+type ColumnKey = keyof typeof DEFAULT_WIDTHS;
+
 interface BookTableProps {
   books: Book[];
   total: number;
@@ -37,12 +52,54 @@ interface BookTableProps {
   onRefresh?: () => void;
 }
 
+function ResizeHandle({ onResize }: { onResize: (delta: number) => void }) {
+  const startX = useRef(0);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startX.current = e.clientX;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      onResize(moveEvent.clientX - startX.current);
+      startX.current = moveEvent.clientX;
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, [onResize]);
+
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/30 active:bg-primary/50 z-10"
+    />
+  );
+}
+
 export function BookTable({ books, total, page, limit, search, sortBy, sortDir, exclusiveShelf, shelves, shelf, onRefresh }: BookTableProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [searchInput, setSearchInput] = useState(search);
+  const [widths, setWidths] = useState<Record<ColumnKey, number>>({ ...DEFAULT_WIDTHS });
 
   const totalPages = Math.ceil(total / limit);
+
+  const resizeColumn = useCallback((col: ColumnKey, delta: number) => {
+    setWidths(prev => ({
+      ...prev,
+      [col]: Math.max(40, prev[col] + delta),
+    }));
+  }, []);
 
   function buildUrl(overrides: Record<string, string | number>) {
     const params = new URLSearchParams();
@@ -72,6 +129,8 @@ export function BookTable({ books, total, page, limit, search, sortBy, sortDir, 
 
   const exclusiveShelves = ["all", "read", "currently-reading", "to-read", "shelved", "to-read-non-fiction"];
 
+  const tableWidth = Object.values(widths).reduce((a, b) => a + b, 0);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3 items-center">
@@ -95,30 +154,64 @@ export function BookTable({ books, total, page, limit, search, sortBy, sortDir, 
         <span className="text-sm text-muted-foreground ml-auto">{total} book{total !== 1 ? "s" : ""}</span>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border overflow-x-auto">
+        <table className="w-full caption-bottom text-sm" style={{ tableLayout: "fixed", minWidth: tableWidth }}>
+          <colgroup>
+            <col style={{ width: widths.cover }} />
+            <col style={{ width: widths.title }} />
+            <col style={{ width: widths.author }} />
+            <col style={{ width: widths.rating }} />
+            <col style={{ width: widths.pages }} />
+            <col style={{ width: widths.beq }} />
+            <col style={{ width: widths.status }} />
+            <col style={{ width: widths.dateRead }} />
+            <col style={{ width: widths.actions }} />
+          </colgroup>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12"></TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("title")}><span className="flex items-center">Title <SortIcon sortBy={sortBy} sortDir={sortDir} field="title" /></span></TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("author")}><span className="flex items-center">Author <SortIcon sortBy={sortBy} sortDir={sortDir} field="author" /></span></TableHead>
-              <TableHead className="cursor-pointer select-none w-24" onClick={() => handleSort("myRating")}><span className="flex items-center">Rating <SortIcon sortBy={sortBy} sortDir={sortDir} field="myRating" /></span></TableHead>
-              <TableHead className="cursor-pointer select-none w-20 text-right" onClick={() => handleSort("pages")}><span className="flex items-center justify-end">Pages <SortIcon sortBy={sortBy} sortDir={sortDir} field="pages" /></span></TableHead>
-              <TableHead className="cursor-pointer select-none w-20 text-right" onClick={() => handleSort("beq")}><span className="flex items-center justify-end">BEq <SortIcon sortBy={sortBy} sortDir={sortDir} field="beq" /></span></TableHead>
-              <TableHead className="w-28">Status</TableHead>
-              <TableHead className="cursor-pointer select-none w-28" onClick={() => handleSort("dateRead")}><span className="flex items-center">Date Read <SortIcon sortBy={sortBy} sortDir={sortDir} field="dateRead" /></span></TableHead>
-              <TableHead className="w-10"></TableHead>
+              <TableHead className="relative">
+                <ResizeHandle onResize={(d) => resizeColumn("cover", d)} />
+              </TableHead>
+              <TableHead className="relative cursor-pointer select-none" onClick={() => handleSort("title")}>
+                <span className="flex items-center">Title <SortIcon sortBy={sortBy} sortDir={sortDir} field="title" /></span>
+                <ResizeHandle onResize={(d) => resizeColumn("title", d)} />
+              </TableHead>
+              <TableHead className="relative cursor-pointer select-none" onClick={() => handleSort("author")}>
+                <span className="flex items-center">Author <SortIcon sortBy={sortBy} sortDir={sortDir} field="author" /></span>
+                <ResizeHandle onResize={(d) => resizeColumn("author", d)} />
+              </TableHead>
+              <TableHead className="relative cursor-pointer select-none" onClick={() => handleSort("myRating")}>
+                <span className="flex items-center">Rating <SortIcon sortBy={sortBy} sortDir={sortDir} field="myRating" /></span>
+                <ResizeHandle onResize={(d) => resizeColumn("rating", d)} />
+              </TableHead>
+              <TableHead className="relative cursor-pointer select-none text-right" onClick={() => handleSort("pages")}>
+                <span className="flex items-center justify-end">Pages <SortIcon sortBy={sortBy} sortDir={sortDir} field="pages" /></span>
+                <ResizeHandle onResize={(d) => resizeColumn("pages", d)} />
+              </TableHead>
+              <TableHead className="relative cursor-pointer select-none text-right" onClick={() => handleSort("beq")}>
+                <span className="flex items-center justify-end">BEq <SortIcon sortBy={sortBy} sortDir={sortDir} field="beq" /></span>
+                <ResizeHandle onResize={(d) => resizeColumn("beq", d)} />
+              </TableHead>
+              <TableHead className="relative">
+                Status
+                <ResizeHandle onResize={(d) => resizeColumn("status", d)} />
+              </TableHead>
+              <TableHead className="relative cursor-pointer select-none" onClick={() => handleSort("dateRead")}>
+                <span className="flex items-center">Date Read <SortIcon sortBy={sortBy} sortDir={sortDir} field="dateRead" /></span>
+                <ResizeHandle onResize={(d) => resizeColumn("dateRead", d)} />
+              </TableHead>
+              <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {books.length === 0 && (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No books found. Try adjusting your filters or <Link href="/import" className="underline">import your CSV</Link>.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8 !whitespace-normal">No books found. Try adjusting your filters or <Link href="/import" className="underline">import your CSV</Link>.</TableCell></TableRow>
             )}
             {books.map((book) => (
               <TableRow key={book.id} className={isPending ? "opacity-60" : ""}>
                 <TableCell><CoverImage url={book.coverUrl} title={book.title} size="sm" /></TableCell>
-                <TableCell><Link href={`/book?id=${book.id}`} className="font-medium hover:underline">{book.title}</Link></TableCell>
-                <TableCell className="text-muted-foreground">{book.author}</TableCell>
+                <TableCell className="!whitespace-normal break-words"><Link href={`/book?id=${book.id}`} className="font-medium hover:underline">{book.title}</Link></TableCell>
+                <TableCell className="text-muted-foreground !whitespace-normal break-words">{book.author}</TableCell>
                 <TableCell>{book.myRating ? <RatingStars rating={book.myRating} /> : <span className="text-muted-foreground/40 text-xs">—</span>}</TableCell>
                 <TableCell className="text-right text-muted-foreground">{book.pages || "—"}</TableCell>
                 <TableCell className="text-right text-muted-foreground">{book.beq?.toFixed(2) || "—"}</TableCell>
@@ -128,7 +221,7 @@ export function BookTable({ books, total, page, limit, search, sortBy, sortDir, 
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+        </table>
       </div>
 
       {totalPages > 1 && (

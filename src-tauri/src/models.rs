@@ -30,6 +30,7 @@ pub struct Book {
     pub open_library_key: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
+    pub book_type: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,7 +71,6 @@ pub struct NewBook {
     pub publisher: Option<String>,
     pub binding: Option<String>,
     pub pages: Option<i64>,
-    pub beq: Option<f64>,
     pub edition_published: Option<i64>,
     pub year_published: Option<i64>,
     pub date_read: Option<String>,
@@ -82,6 +82,7 @@ pub struct NewBook {
     pub owned_copies: Option<i64>,
     pub cover_url: Option<String>,
     pub shelf_names: Option<Vec<String>>,
+    pub book_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,6 +97,7 @@ pub struct BooksResult {
 pub struct ImportResult {
     pub imported: i64,
     pub total: i64,
+    pub skipped: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -104,6 +106,10 @@ pub struct Stats {
     pub total_books: i64,
     pub total_read: i64,
     pub total_beq: f64,
+    pub total_beq_traditional: f64,
+    pub total_beq_graphic_novel: f64,
+    pub avg_pages_traditional: f64,
+    pub avg_pages_graphic_novel: f64,
     pub avg_rating: f64,
     pub books_this_year: i64,
     pub beq_this_year: f64,

@@ -5,13 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export const BEQ_DIVISOR = 348;
-
-export function calculateBeq(pages: number | null | undefined): number | null {
-  if (!pages || pages <= 0) return null;
-  return Math.round((pages / BEQ_DIVISOR) * 100) / 100;
-}
-
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "";
   const normalized = dateStr.replace(/\//g, "-");

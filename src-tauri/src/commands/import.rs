@@ -1,9 +1,26 @@
-use crate::commands::books::calculate_beq;
 use crate::db::DbState;
 use crate::models::*;
 use rusqlite::params;
 use std::collections::HashMap;
 use tauri::State;
+
+/// Extract a 4-digit year from a date string like "2024/05/15", "2024-05-15", "May 15, 2024", etc.
+fn extract_year(date_str: &str) -> Option<i64> {
+    // Find the first 4-digit number that looks like a year (1900-2099)
+    let mut i = 0;
+    let bytes = date_str.as_bytes();
+    while i + 3 < bytes.len() {
+        if bytes[i].is_ascii_digit() && bytes[i+1].is_ascii_digit() && bytes[i+2].is_ascii_digit() && bytes[i+3].is_ascii_digit() {
+            if let Ok(y) = date_str[i..i+4].parse::<i64>() {
+                if (1900..=2099).contains(&y) {
+                    return Some(y);
+                }
+            }
+        }
+        i += 1;
+    }
+    None
+}
 
 /// Known aliases: maps common CSV header variations → our canonical field names
 fn default_aliases() -> HashMap<String, String> {
@@ -49,6 +66,10 @@ fn default_aliases() -> HashMap<String, String> {
         ("Date", "year_published"),
         ("Page Count", "pages"),
         ("Collections", "bookshelves"),
+        // Book type
+        ("Book Type", "book_type"),
+        ("Type", "book_type"),
+        ("Format", "book_type"),
     ];
     pairs
         .into_iter()
@@ -121,6 +142,7 @@ pub fn import_csv(
 
     let mut imported: i64 = 0;
     let mut total: i64 = 0;
+    let mut skipped: Vec<String> = Vec::new();
 
     for result in reader.records() {
         total += 1;
@@ -154,8 +176,51 @@ pub fn import_csv(
 
         let isbn = clean_isbn(get("isbn"));
         let isbn13 = clean_isbn(get("isbn13"));
+
+        // Dedup check: isbn13 → isbn → goodreads_id → title+author
+        let goodreads_id: Option<i64> = get("goodreads_id").parse().ok();
+        let is_dup = (|| {
+            if let Some(ref id) = isbn13 {
+                let count: i64 = conn.query_row(
+                    "SELECT COUNT(*) FROM books WHERE isbn13 = ?1", params![id], |r| r.get(0),
+                ).unwrap_or(0);
+                if count > 0 { return true; }
+            }
+            if let Some(ref id) = isbn {
+                let count: i64 = conn.query_row(
+                    "SELECT COUNT(*) FROM books WHERE isbn = ?1", params![id], |r| r.get(0),
+                ).unwrap_or(0);
+                if count > 0 { return true; }
+            }
+            if let Some(id) = goodreads_id {
+                let count: i64 = conn.query_row(
+                    "SELECT COUNT(*) FROM books WHERE goodreads_id = ?1", params![id], |r| r.get(0),
+                ).unwrap_or(0);
+                if count > 0 { return true; }
+            }
+            if !title.is_empty() && !author.is_empty() {
+                let count: i64 = conn.query_row(
+                    "SELECT COUNT(*) FROM books WHERE LOWER(title) = LOWER(?1) AND LOWER(author) = LOWER(?2)",
+                    params![title, author], |r| r.get(0),
+                ).unwrap_or(0);
+                if count > 0 { return true; }
+            }
+            false
+        })();
+
+        if is_dup {
+            let label = if author.is_empty() {
+                title.clone()
+            } else {
+                format!("{} by {}", title, author)
+            };
+            skipped.push(label);
+            continue;
+        }
+
         let pages: Option<i64> = get("pages").parse().ok();
-        let beq = calculate_beq(pages);
+        let book_type_raw = get("book_type");
+        let book_type = if book_type_raw.is_empty() { "traditional".to_string() } else { book_type_raw };
         let cover_url = isbn13
             .as_ref()
             .or(isbn.as_ref())
@@ -164,8 +229,8 @@ pub fn import_csv(
 
         conn.execute(
             "INSERT INTO books (goodreads_id, title, author, author_sort, additional_authors, isbn, isbn13,
-             my_rating, average_rating, publisher, binding, pages, beq, edition_published, year_published,
-             date_read, year_read, date_added, exclusive_shelf, my_review, read_count, owned_copies, cover_url)
+             my_rating, average_rating, publisher, binding, pages, edition_published, year_published,
+             date_read, year_read, date_added, exclusive_shelf, my_review, read_count, owned_copies, cover_url, book_type)
              VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23)",
             params![
                 get("goodreads_id").parse::<i64>().ok(),
@@ -180,14 +245,22 @@ pub fn import_csv(
                 get("publisher"),
                 get("binding"),
                 pages,
-                beq,
                 get("edition_published").parse::<i64>().ok(),
                 get("year_published").parse::<i64>().ok(),
                 {
                     let v = get("date_read");
                     if v.is_empty() { None } else { Some(v) }
                 },
-                get("year_read").parse::<i64>().ok(),
+                {
+                    // Try explicit year_read first, then extract from date_read
+                    let yr = get("year_read");
+                    if let Ok(y) = yr.parse::<i64>() {
+                        Some(y)
+                    } else {
+                        let dr = get("date_read");
+                        extract_year(&dr)
+                    }
+                },
                 {
                     let v = get("date_added");
                     if v.is_empty() {
@@ -211,6 +284,7 @@ pub fn import_csv(
                 get("read_count").parse::<i64>().unwrap_or(0),
                 get("owned_copies").parse::<i64>().unwrap_or(0),
                 cover_url,
+                book_type,
             ],
         )
         .map_err(|e| e.to_string())?;
@@ -247,5 +321,5 @@ pub fn import_csv(
         imported += 1;
     }
 
-    Ok(ImportResult { imported, total })
+    Ok(ImportResult { imported, total, skipped })
 }
